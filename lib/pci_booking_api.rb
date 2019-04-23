@@ -3,6 +3,35 @@
 require 'pci_booking_api/version'
 
 module PciBookingApi
-  class Error < StandardError; end
-  # Your code goes here...
+  module_function
+
+  def version
+    VERSION
+  end
+
+  def setup
+    yield self
+  end
+
+  def network_timeout
+    @network_timeout
+  end
+
+  def network_timeout=(value)
+    @network_timeout = value
+  end
+
+  def base_uri
+    @base_uri || 'https://service.pcibooking.net/api'
+  end
+
+  def base_uri=(value)
+    @base_uri = value
+  end
 end
+
+require 'dotenv/load'
+require 'httparty'
+require 'pci_booking_api/http_request'
+require 'pci_booking_api/error'
+require 'pci_booking_api/client'

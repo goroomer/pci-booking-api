@@ -13,4 +13,8 @@ RSpec.configure do |config|
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
+
+  config.define_derived_metadata do |metadata|
+    metadata[:type] = :plain_ruby_class
+  end
 end
