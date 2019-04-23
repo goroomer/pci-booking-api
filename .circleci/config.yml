@@ -1,0 +1,45 @@
+version: 2
+
+jobs:
+  build:
+    parallelism: 1
+    working_directory: ~/pci_booking_api
+    docker:
+      - image: circleci/ruby:2.5.5
+        environment:
+          - RAILS_ENV=test
+          - RACK_ENV=test
+    steps:
+      - checkout
+
+      # Restore bundle cache
+      - type: cache-restore
+        key: pci-booking-api-bundler-{{ checksum "Gemfile.lock" }}
+
+      - run:
+          name: Install bunlder
+          command: gem install bundler
+
+      - run:
+          name: Installing gems from the Gemfile
+          command: bundle install --retry=3 --jobs=3 --path vendor/bundle
+
+      # Store bundle cache
+      - type: cache-save
+        key: pci-booking-api-bundler-{{ checksum "Gemfile.lock" }}
+        paths:
+          - vendor/bundle
+
+      - run:
+          name: Running rspec in parallel
+          command: |
+            bundle exec rspec -r rspec_junit_formatter --profile 10 \
+              --format RspecJunitFormatter \
+              --out /tmp/test_results/rspec.xml \
+              --format progress \
+              $(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)
+      - type: store_test_results
+        path: /tmp/test_results
+
+      - type: store_artifacts
+        path: /tmp/artifacts

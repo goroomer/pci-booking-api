@@ -1,0 +1,65 @@
+require: rubocop-performance
+AllCops:
+  Exclude:
+    - "vendor/**/*"
+    - "db/schema.rb"
+    - "spec/fixtures/**/*"
+  UseCache: false
+  DefaultFormatter: progress
+  DisplayStyleGuide: true
+  DisplayCopNames: true
+  TargetRubyVersion: 2.3 # the oldest version of Ruby to support
+Metrics/LineLength:
+  Max: 120
+  AllowHeredoc: true
+  AllowURI: true
+  URISchemes:
+    - http
+    - https
+  Include:
+    - "app/**/*"
+  Exclude:
+    - "db/schema.rb"
+    - "spec/fixtures/**/*"
+Metrics/MethodLength:
+  CountComments: false
+  Max: 20
+Metrics/ClassLength:
+  CountComments: false
+  Max: 200
+Metrics/ModuleLength:
+  CountComments: false
+  Max: 200
+  Exclude:
+    - 'spec/**/*'
+Metrics/BlockLength:
+  CountComments: false
+  Max: 20
+  Exclude:
+    - 'spec/**/*'
+    - 'Gemfile'
+Metrics/ParameterLists:
+  Max: 5
+  CountKeywordArgs: true
+Metrics/AbcSize:
+  Enabled: false
+  Max: 30
+# Avoid complex methods.
+Metrics/CyclomaticComplexity:
+  Enabled: false
+  Max: 6
+Metrics/PerceivedComplexity:
+  Enabled: false
+  Max: 7
+Documentation:
+  Enabled: false
+Style/DocumentationMethod:
+  RequireForNonPublicMethods: false
+Style/PercentLiteralDelimiters:
+  PreferredDelimiters:
+    default: "[]"
+    "%i":    "[]"
+    "%I":    "[]"
+    "%r":    "{}"
+    "%w":    "[]"
+    "%W":    "[]"
