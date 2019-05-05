@@ -12,10 +12,6 @@ jobs:
     steps:
       - checkout
 
-      # Restore bundle cache
-      - type: cache-restore
-        key: pci-booking-api-bundler-{{ checksum "Gemfile.lock" }}
-
       - run:
           name: Install bunlder
           command: gem install bundler
@@ -23,12 +19,6 @@ jobs:
       - run:
           name: Installing gems from the Gemfile
           command: bundle install --retry=3 --jobs=3 --path vendor/bundle
-
-      # Store bundle cache
-      - type: cache-save
-        key: pci-booking-api-bundler-{{ checksum "Gemfile.lock" }}
-        paths:
-          - vendor/bundle
 
       - run:
           name: Running rspec in parallel

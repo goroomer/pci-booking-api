@@ -4,10 +4,10 @@ RSpec.describe PciBookingApi::Client, type: :plain_ruby_class do
   subject { described_class }
 
   describe '#authenticate' do
-    context 'with wrong API KEY' do
+    context 'when authorization header is invalid' do
       it 'should raise PciBookingApi::Error' do
-        instance = subject.new api_key: SecureRandom.hex
-        expect { instance.authenticate }.to raise_error(PciBookingApi::Error, 'Failed to authenticate')
+        client = subject.new api_key: SecureRandom.hex
+        expect { client.authenticate }.to raise_error(PciBookingApi::Error, 'Failed to authenticate')
       end
     end
 
@@ -23,23 +23,63 @@ RSpec.describe PciBookingApi::Client, type: :plain_ruby_class do
   end
 
   describe '#payment_gateways' do
-    it 'should have Stripe as one of options' do
-      if ENV['PCI_BOOKING_API_KEY'].nil?
-        response_mock = double(HTTParty::Response, ok?: true)
-        allow(PciBookingApi::HttpRequest).to receive(:get).and_return(response_mock)
-      end
-
+    it 'should return Stripe as one of options' do
       hash = subject.new.payment_gateways.find { |h| h['Name'].casecmp('stripe').zero? }
       expect(hash).not_to be nil
     end
 
-    context 'when responded not with 200 OK' do
+    context 'when response code is not 200 OK' do
       it 'should raise PciBookingApi::Error' do
         response_mock = double(HTTParty::Response, ok?: false)
         allow(PciBookingApi::HttpRequest).to receive(:get).and_return(response_mock)
 
         expect { subject.new.payment_gateways }.to raise_error(PciBookingApi::Error,
                                                                'Failed to get supported payment providers')
+      end
+    end
+  end
+
+  describe '#process_payment' do
+    let(:payload) do
+      {
+        env_name: 'STRIPE_SECRET_KEY',
+        operation: 'PreAuth',
+        card: SecureRandom.hex,
+        reference: '12345',
+        amount: rand(100..1000),
+        currency: nil,
+        gateway_ref_id: nil,
+        payer_first_name: 'Test',
+        payer_last_name: 'Test',
+        payer_email: 'test@example.com',
+        payer_phone: '+1-202-555-0123',
+        payer_address: '1359 Luke Lane',
+        payer_post_code: '73069',
+        payer_city: 'Norman',
+        payer_state: 'Oklahoma',
+        payer_country_code: 'USA'
+      }
+    end
+
+    context 'when authorization header is invalid' do
+      it 'should raise PciBookingApi::Error' do
+        client = subject.new api_key: SecureRandom.hex
+        expect { client.process_payment(body_params: payload) }
+          .to raise_error(PciBookingApi::Error, 'Failed to authenticate')
+      end
+    end
+
+    context 'when request payload is invalid' do
+      it 'should raise PciBookingApi::Error' do
+        if ENV['PCI_BOOKING_API_KEY'].nil?
+          response_mock = double(HTTParty::Response, unauthorized?: false, ok?: false,
+                                                     parsed_response: { 'ErrorBlock' => {
+                                                       'code' => -125, 'message' => 'Bad input data'
+                                                     } })
+          allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
+        end
+        expect { subject.new.process_payment(body_params: payload) }
+          .to raise_error(PciBookingApi::Error, 'Status code: -125 | Bad input data')
       end
     end
   end
