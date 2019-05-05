@@ -21,5 +21,28 @@ module PciBookingApi
         Error.throw 'Failed to get supported payment providers'
       end
     end
+
+    def process_payment(body_params: {})
+      provider = supported_gateways(body_params[:gateway_name]).new(options: body_params)
+      @options[:body] = provider.request_payload
+      response = HttpRequest.post '/paymentGateway', @options
+      Error.throw 'Failed to authenticate', caller if response.unauthorized?
+
+      if response.ok?
+        response.parsed_response
+      else
+        error_hash = response.parsed_response.fetch('ErrorBlock', {})
+        messages = ["Status code: #{error_hash['code']}", error_hash.fetch('message', '').to_s]
+        Error.throw messages.join(' | '), caller
+      end
+    end
+
+    private
+
+    def supported_gateways(name = '')
+      {
+        'Stripe' => PaymentGateways::Stripe
+      }.fetch(name, PaymentGateways::Stripe)
+    end
   end
 end

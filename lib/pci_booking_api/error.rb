@@ -2,8 +2,8 @@
 
 module PciBookingApi
   class Error < StandardError
-    def self.throw(message = "#{self.class.name} failed!")
-      raise self, message
+    def self.throw(message = 'Something went wrong', callbacks = [])
+      raise self, message, callbacks
     end
   end
 end
