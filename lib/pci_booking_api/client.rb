@@ -26,7 +26,7 @@ module PciBookingApi
       provider = supported_gateways(body_params[:gateway_name]).new(options: body_params)
       @options[:body] = provider.request_payload
       response = HttpRequest.post '/paymentGateway', @options
-      Error.throw 'Failed to authenticate', caller if response.unauthorized?
+      Error.throw 'Authentication failure, cannot proceed with the payment', caller if response.unauthorized?
 
       if response.ok?
         response.parsed_response
