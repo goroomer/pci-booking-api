@@ -2,7 +2,7 @@
 
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'pci_booking_api'
+require 'pci_booking_api/version'
 
 Gem::Specification.new do |spec|
   spec.name          = 'pci_booking_api'

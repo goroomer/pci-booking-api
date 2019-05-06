@@ -65,7 +65,7 @@ RSpec.describe PciBookingApi::Client, type: :plain_ruby_class do
       it 'should raise PciBookingApi::Error' do
         client = subject.new api_key: SecureRandom.hex
         expect { client.process_payment(body_params: payload) }
-          .to raise_error(PciBookingApi::Error, 'Failed to authenticate')
+          .to raise_error(PciBookingApi::Error, 'Authentication failure, cannot proceed with the payment')
       end
     end
 
@@ -80,6 +80,66 @@ RSpec.describe PciBookingApi::Client, type: :plain_ruby_class do
         end
         expect { subject.new.process_payment(body_params: payload) }
           .to raise_error(PciBookingApi::Error, 'Status code: -125 | Bad input data')
+      end
+    end
+
+    context 'when operation has rejected' do
+      it 'should raise PciBookingApi::ProcessPaymentErrors::Rejection' do
+        if ENV['PCI_BOOKING_API_KEY'].nil?
+          response_mock = double(HTTParty::Response, unauthorized?: false, ok?: true,
+                                                     parsed_response: {
+                                                       'OperationResultCode' => 'Rejected',
+                                                       'GatewayResultCode' => 'test',
+                                                       'GatewayResultDescription' => 'test'
+                                                     })
+          allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
+        end
+        expect { subject.new.process_payment(body_params: payload) }
+          .to raise_error(PciBookingApi::ProcessPaymentErrors::Rejection, 'Code: test, Reason: test')
+      end
+    end
+
+    context 'when operation must be retried' do
+      it 'should raise PciBookingApi::ProcessPaymentErrors::Retry' do
+        if ENV['PCI_BOOKING_API_KEY'].nil?
+          response_mock = double(HTTParty::Response, unauthorized?: false, ok?: true,
+                                                     parsed_response: {
+                                                       'OperationResultCode' => 'TemporaryFailure'
+                                                     })
+          allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
+        end
+        expect { subject.new.process_payment(body_params: payload) }
+          .to raise_error(PciBookingApi::ProcessPaymentErrors::Retry)
+      end
+    end
+
+    context 'when operation resulted in fatal error' do
+      it 'should raise PciBookingApi::ProcessPaymentErrors::Retry' do
+        if ENV['PCI_BOOKING_API_KEY'].nil?
+          response_mock = double(HTTParty::Response, unauthorized?: false, ok?: true,
+                                                     parsed_response: {
+                                                       'OperationResultCode' => 'FatalFailure'
+                                                     })
+          allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
+        end
+        expect { subject.new.process_payment(body_params: payload) }
+          .to raise_error(PciBookingApi::ProcessPaymentErrors::Fatal)
+      end
+    end
+
+    context 'when operation was successful' do
+      it 'should return predefined hash extracted from the response' do
+        if ENV['PCI_BOOKING_API_KEY'].nil?
+          response_mock = double(HTTParty::Response, unauthorized?: false, ok?: true,
+                                                     parsed_response: {
+                                                       'OperationResultCode' => 'Success'
+                                                     })
+          allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
+        end
+        expect(subject.new.process_payment(body_params: payload)).to eq(gateway_name: '',
+                                                                        gateway_ref_id: '',
+                                                                        amount: 0.0,
+                                                                        currency: '')
       end
     end
   end

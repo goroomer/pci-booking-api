@@ -56,7 +56,7 @@ module PciBookingApi
       when 'TemporaryFailure' then
         ProcessPaymentErrors::Retry.throw
       when 'FatalFailure' then
-        ProcessPaymentErrors::Fatal.trow message, caller
+        ProcessPaymentErrors::Fatal.throw message, caller
       else
         {
           gateway_name: response['GatewayName'].to_s,
