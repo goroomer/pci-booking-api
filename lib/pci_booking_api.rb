@@ -14,7 +14,7 @@ module PciBookingApi
   end
 
   def network_timeout
-    @network_timeout
+    @network_timeout || 1 # second by default
   end
 
   def network_timeout=(value)
