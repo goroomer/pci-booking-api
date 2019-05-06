@@ -23,13 +23,15 @@ module PciBookingApi
     end
 
     def process_payment(body_params: {})
+      HttpRequest.headers 'Content-Type' => 'application/json'
+
       provider = supported_gateways(body_params[:gateway_name]).new(options: body_params)
-      @options[:body] = provider.request_payload
+      @options[:body] = provider.request_payload.to_json
       response = HttpRequest.post '/paymentGateway', @options
       Error.throw 'Authentication failure, cannot proceed with the payment', caller if response.unauthorized?
 
       if response.ok?
-        response.parsed_response
+        process_payment_operation response.parsed_response
       else
         error_hash = response.parsed_response.fetch('ErrorBlock', {})
         messages = ["Status code: #{error_hash['code']}", error_hash.fetch('message', '').to_s]
@@ -43,6 +45,26 @@ module PciBookingApi
       {
         'Stripe' => PaymentGateways::Stripe
       }.fetch(name, PaymentGateways::Stripe)
+    end
+
+    def process_payment_operation(response = {})
+      message = "Code: #{response['GatewayResultCode']}, Reason: #{response['GatewayResultDescription']}"
+
+      case response['OperationResultCode']
+      when 'Rejected' then
+        ProcessPaymentErrors::Rejection.throw message, caller
+      when 'TemporaryFailure' then
+        ProcessPaymentErrors::Retry.throw
+      when 'FatalFailure' then
+        ProcessPaymentErrors::Fatal.trow message, caller
+      else
+        {
+          gateway_name: response['GatewayName'].to_s,
+          gateway_ref_id: response['GatewayReference'].to_s,
+          amount: response['Amount'].to_f,
+          currency: response['Currency'].to_s
+        }
+      end
     end
   end
 end
