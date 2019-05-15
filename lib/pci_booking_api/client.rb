@@ -48,7 +48,7 @@ module PciBookingApi
     end
 
     def process_payment_operation(response, provider_type)
-      message = "Code: #{response['GatewayResultCode']}, Reason: #{response['GatewayResultDescription']}"
+      message = build_error_message response
       operation_response = {
         gateway_name: response['GatewayName'].to_s,
         gateway_ref_id: response['GatewayReference'].to_s,
@@ -68,6 +68,13 @@ module PciBookingApi
       else
         operation_response
       end
+    end
+
+    def build_error_message(json)
+      builder = ["Operation: #{json['OperationType'] || 'N/A'}"]
+      builder << "Code: #{json['GatewayResultCode']}" if json['GatewayResultCode'].to_s.length.positive?
+      builder << "Desc: #{json['OperationResultDescription'] || json['GatewayResultDescription']}"
+      builder.join(', ')
     end
   end
 end

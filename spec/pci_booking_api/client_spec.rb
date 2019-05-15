@@ -95,7 +95,7 @@ RSpec.describe PciBookingApi::Client, type: :plain_ruby_class do
           allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
         end
         expect { subject.new.process_payment(body_params: payload) }
-          .to raise_error(PciBookingApi::ProcessPaymentErrors::Rejection, 'Code: test, Reason: test')
+          .to raise_error(PciBookingApi::ProcessPaymentErrors::Rejection, 'Operation: N/A, Code: test, Desc: test')
       end
     end
 
