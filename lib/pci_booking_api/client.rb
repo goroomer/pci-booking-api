@@ -31,7 +31,7 @@ module PciBookingApi
       Error.throw 'Authentication failure, cannot proceed with the payment', caller if response.unauthorized?
 
       if response.ok?
-        process_payment_operation(response.parsed_response || {}, provider.class)
+        process_payment_operation(response.parsed_response || {})
       else
         error_hash = response.parsed_response.fetch('ErrorBlock', {})
         messages = ["Status code: #{error_hash['code']}", error_hash.fetch('message', '').to_s]
@@ -47,7 +47,7 @@ module PciBookingApi
       }.fetch(name, PaymentGateways::Stripe)
     end
 
-    def process_payment_operation(response, provider_type)
+    def process_payment_operation(response)
       message = build_error_message response
       operation_response = {
         gateway_name: response['GatewayName'].to_s,
@@ -58,8 +58,6 @@ module PciBookingApi
 
       case response['OperationResultCode']
       when 'Rejected' then
-        return operation_response if response['GatewayResultCode'] == 'paid' && provider_type == PaymentGateways::Stripe
-
         ProcessPaymentErrors::Rejection.throw message, caller
       when 'TemporaryFailure' then
         ProcessPaymentErrors::Retry.throw

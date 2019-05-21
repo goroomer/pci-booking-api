@@ -44,7 +44,7 @@ RSpec.describe PciBookingApi::Client, type: :plain_ruby_class do
       {
         env_name: 'STRIPE_SECRET_KEY',
         operation: 'PreAuth',
-        card: SecureRandom.hex,
+        card: "https://secure.pcibooking.net/api/payments/paycard/#{SecureRandom.hex}",
         reference: '12345',
         amount: rand(100..1000),
         currency: nil,
@@ -73,11 +73,12 @@ RSpec.describe PciBookingApi::Client, type: :plain_ruby_class do
       it 'should raise PciBookingApi::Error' do
         if ENV['PCI_BOOKING_API_KEY'].nil?
           response_mock = double(HTTParty::Response, unauthorized?: false, ok?: false,
-                                                     parsed_response: { 'ErrorBlock' => {
-                                                       'code' => -125, 'message' => 'Bad input data'
-                                                     } })
+                                 parsed_response: { 'ErrorBlock' => {
+                                   'code' => -125, 'message' => 'Bad input data'
+                                 } })
           allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
         end
+        payload.delete(:card)
         expect { subject.new.process_payment(body_params: payload) }
           .to raise_error(PciBookingApi::Error, 'Status code: -125 | Bad input data')
       end
@@ -85,29 +86,26 @@ RSpec.describe PciBookingApi::Client, type: :plain_ruby_class do
 
     context 'when operation has rejected' do
       it 'should raise PciBookingApi::ProcessPaymentErrors::Rejection' do
-        if ENV['PCI_BOOKING_API_KEY'].nil?
-          response_mock = double(HTTParty::Response, unauthorized?: false, ok?: true,
-                                                     parsed_response: {
-                                                       'OperationResultCode' => 'Rejected',
-                                                       'GatewayResultCode' => 'test',
-                                                       'GatewayResultDescription' => 'test'
-                                                     })
-          allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
-        end
+        response_mock = double(HTTParty::Response,
+                               unauthorized?: false, ok?: true,
+                               parsed_response: {
+                                 'OperationType' => 'PreAuth',
+                                 'OperationResultCode' => 'Rejected',
+                                 'GatewayResultDescription' => '[card_error] test'
+                               })
+        allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
         expect { subject.new.process_payment(body_params: payload) }
-          .to raise_error(PciBookingApi::ProcessPaymentErrors::Rejection, 'Operation: N/A, Code: test, Desc: test')
+          .to raise_error(PciBookingApi::ProcessPaymentErrors::Rejection,
+                          'Operation: PreAuth, Desc: [card_error] test')
       end
     end
 
     context 'when operation must be retried' do
       it 'should raise PciBookingApi::ProcessPaymentErrors::Retry' do
-        if ENV['PCI_BOOKING_API_KEY'].nil?
-          response_mock = double(HTTParty::Response, unauthorized?: false, ok?: true,
-                                                     parsed_response: {
-                                                       'OperationResultCode' => 'TemporaryFailure'
-                                                     })
-          allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
-        end
+        response_mock = double(HTTParty::Response,
+                               unauthorized?: false, ok?: true,
+                               parsed_response: { 'OperationResultCode' => 'TemporaryFailure' })
+        allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
         expect { subject.new.process_payment(body_params: payload) }
           .to raise_error(PciBookingApi::ProcessPaymentErrors::Retry)
       end
@@ -115,13 +113,10 @@ RSpec.describe PciBookingApi::Client, type: :plain_ruby_class do
 
     context 'when operation resulted in fatal error' do
       it 'should raise PciBookingApi::ProcessPaymentErrors::Retry' do
-        if ENV['PCI_BOOKING_API_KEY'].nil?
-          response_mock = double(HTTParty::Response, unauthorized?: false, ok?: true,
-                                                     parsed_response: {
-                                                       'OperationResultCode' => 'FatalFailure'
-                                                     })
-          allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
-        end
+        response_mock = double(HTTParty::Response,
+                               unauthorized?: false, ok?: true,
+                               parsed_response: { 'OperationResultCode' => 'FatalFailure' })
+        allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
         expect { subject.new.process_payment(body_params: payload) }
           .to raise_error(PciBookingApi::ProcessPaymentErrors::Fatal)
       end
@@ -129,13 +124,10 @@ RSpec.describe PciBookingApi::Client, type: :plain_ruby_class do
 
     context 'when operation was successful' do
       it 'should return predefined hash extracted from the response' do
-        if ENV['PCI_BOOKING_API_KEY'].nil?
-          response_mock = double(HTTParty::Response, unauthorized?: false, ok?: true,
-                                                     parsed_response: {
-                                                       'OperationResultCode' => 'Success'
-                                                     })
-          allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
-        end
+        response_mock = double(HTTParty::Response,
+                               unauthorized?: false, ok?: true,
+                               parsed_response: { 'OperationResultCode' => 'Success' })
+        allow(PciBookingApi::HttpRequest).to receive(:post).and_return(response_mock)
         expect(subject.new.process_payment(body_params: payload)).to eq(gateway_name: '',
                                                                         gateway_ref_id: '',
                                                                         amount: 0.0,

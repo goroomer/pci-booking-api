@@ -30,7 +30,7 @@ module PciBookingApi
   end
 end
 
-require 'dotenv/load' if File.exist?('dotenv')
+require 'dotenv/load' if File.exist?('.env')
 require 'httparty'
 require 'pci_booking_api/http_request'
 require 'pci_booking_api/error'
