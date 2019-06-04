@@ -1,5 +1,10 @@
 module PciBookingApi
   class ClientStub < Client
+    # To use this stub just add a header to the book request
+    # req['X-Card-Token-Url'] = ''
+    # The options are :  PreAuthRejected, PreAuthTemporaryFailure, PreAuthFatalFailure
+    #                    CaptureRejected, CaptureTemporaryFailure, CaptureFatalFailure
+    # Any other Value will respond with success
     def process_payment(body_params: {})
 
       operation_response = {
