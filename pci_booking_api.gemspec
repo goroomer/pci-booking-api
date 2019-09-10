@@ -28,8 +28,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rake', '~> 12.3'
   spec.add_development_dependency 'rspec', '~> 3.8'
   spec.add_development_dependency 'rspec_junit_formatter'
-  spec.add_development_dependency 'rubocop', '~> 0.67'
-  spec.add_development_dependency 'rubocop-performance', '~> 1.1'
+  spec.add_development_dependency 'rubocop'
+  spec.add_development_dependency 'rubocop-performance'
+  spec.add_development_dependency 'rubocop-rspec'
   spec.add_development_dependency 'yard', '~> 0.9'
 
   spec.add_runtime_dependency 'httparty', '~> 0.14'
