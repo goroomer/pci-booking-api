@@ -53,7 +53,8 @@ module PciBookingApi
         gateway_name: response['GatewayName'].to_s,
         gateway_ref_id: response['GatewayReference'].to_s,
         amount: response['Amount'].to_f,
-        currency: response['Currency'].to_s
+        currency: response['Currency'].to_s,
+        raw_response: response.to_json
       }
 
       case response['OperationResultCode']
